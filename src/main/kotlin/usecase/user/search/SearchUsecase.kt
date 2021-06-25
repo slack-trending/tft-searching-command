@@ -10,10 +10,14 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import util.api.RiotAPI
 import util.api.dto.SummonerInfoResult
+import util.logger.Logger
 
 class SearchUsecase (
     private val baseUrl: String
 ) {
+
+    companion object: Logger
+
     private lateinit var riotAPI: RiotAPI
     private val client: OkHttpClient
 
@@ -37,13 +41,11 @@ class SearchUsecase (
             override fun onResponse(call: Call<SummonerInfoResult>, response: Response<SummonerInfoResult>) {
                 if (response.isSuccessful) {
                     val data = response.body()
-
                     summonerInfoResult = data
                 }
             }
 
             override fun onFailure(call: Call<SummonerInfoResult>, t: Throwable) {
-
             }
         })
 
