@@ -1,60 +1,77 @@
 package usecase.user.search
 
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import retrofit2.Response.success
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import util.api.RiotAPI
+import util.api.dto.MatchHistoryResult
 import util.api.dto.SummonerInfoResult
+import util.api.exception.ReceiveFailedException
 import util.logger.Logger
 
 class SearchUsecase (
-    private val baseUrl: String
+    private val baseUrl: String,
+    private val tftSearchBaseUrl: String
 ) {
 
     companion object: Logger
 
     private lateinit var riotAPI: RiotAPI
-    private val client: OkHttpClient
+    private lateinit var tftAPI: RiotAPI
+
+    private val client: OkHttpClient = OkHttpClient().newBuilder()
+        .build()
 
     init {
-        val interceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-
-        client = OkHttpClient().newBuilder()
-            .addInterceptor(interceptor)
-            .build()
-
         createRiotAPI()
     }
 
     fun searchByUserName(userName: String): SummonerInfoResult {
-        val request = riotAPI.getSummonerInfo(userName, System.getenv("RIOT_API_KEY"))
-        var summonerInfoResult: SummonerInfoResult? = null
+        val call = riotAPI.getSummonerInfo(userName, System.getenv("RIOT_API_KEY"))
 
-        request.enqueue(object : Callback<SummonerInfoResult> {
-            override fun onResponse(call: Call<SummonerInfoResult>, response: Response<SummonerInfoResult>) {
-                if (response.isSuccessful) {
-                    val data = response.body()
-                    summonerInfoResult = data
-                }
-            }
+        val response = call.execute()
+        val body = response.body()
 
-            override fun onFailure(call: Call<SummonerInfoResult>, t: Throwable) {
-            }
-        })
-
-        return summonerInfoResult ?: SummonerInfoResult("1", "1", "1", "1", 1, 1, 1)
+        return body ?: throw ReceiveFailedException()
     }
+
+    fun searchMatchHistoriesByPuuid(puuid: String): List<String> {
+        val call = tftAPI.getMatchHistoryList(puuid, System.getenv("RIOT_API_KEY"))
+
+        val response = call.execute()
+        val body = response.body()
+
+        return body ?: throw ReceiveFailedException()
+    }
+
+    fun searchMatchesByMatchIdList(matchIdList: List<String>): List<MatchHistoryResult> {
+        val apiKey = System.getenv("RIOT_API_KEY")
+        val matchHistory = mutableListOf<MatchHistoryResult>()
+
+        matchIdList.forEach { matchId ->
+            val call = tftAPI.getMatchHistory(matchId, apiKey)
+
+            val response = call.execute()
+            val body = response.body()
+
+            if (body != null) matchHistory.add(body)
+            else throw ReceiveFailedException()
+        }
+
+        return matchHistory
+    }
+
 
     private fun createRiotAPI() {
         riotAPI = Retrofit.Builder()
             .baseUrl(baseUrl)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(RiotAPI::class.java)
+
+        tftAPI = Retrofit.Builder()
+            .baseUrl(tftSearchBaseUrl)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

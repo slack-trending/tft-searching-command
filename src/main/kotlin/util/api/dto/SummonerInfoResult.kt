@@ -19,7 +19,7 @@ class SummonerInfoResult (
     val profileIconId: Int,
 
     @SerializedName("revisionDate")
-    val revisionDate: Int,
+    val revisionDate: String,
 
     @SerializedName("summonerLevel")
     val summonerLevel: Int
