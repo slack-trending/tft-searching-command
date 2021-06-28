@@ -1,6 +1,10 @@
 package util.api.dto
 
 import com.google.gson.annotations.SerializedName
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 
 class MatchHistoryResult (
     @SerializedName("metadata")
@@ -25,7 +29,7 @@ class MatchHistoryResult (
         val gameDateTime: Long,
 
         @SerializedName("game_length")
-        val gameLength: Float,
+        val gameLength: Double,
 
         @SerializedName("game_variation")
         val gameVariation: String,
@@ -41,7 +45,17 @@ class MatchHistoryResult (
 
         @SerializedName("tft_set_number")
         val tftSetNumber: Int
-    )
+    ) {
+        fun getDateTime(): String? {
+            return try {
+                val sdf = SimpleDateFormat("yyyy/MM/dd")
+                val netDate = Date(this.gameDateTime * 1000)
+                sdf.format(netDate)
+            } catch (e: Exception) {
+                e.toString()
+            }
+        }
+    }
 
     class Participant (
         @SerializedName("gold_left")
